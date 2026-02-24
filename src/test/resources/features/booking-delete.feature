@@ -24,41 +24,23 @@ Feature: Cancel booking
     And the response indicates that the booking could not be found
 
 
-  @delete @negative
-  Scenario: Fail to cancel a booking when the booking reference format is invalid
-    Given an invalid booking reference is provided
-    When a cancellation request is submitted
-    Then the system rejects the cancellation request
-    And the response indicates a validation error
-
-
-  @delete @negative @boundary
-  Scenario Outline: Fail to cancel a booking with invalid numeric booking references
-    Given the booking reference provided is <id>
-    When a cancellation request is submitted
-    Then the system rejects the cancellation request
-    And the response indicates a validation error
-
-    Examples:
-      | id              |
-      | 999999999999999 |
-      | 0               |
-
-
   @delete @negative @validation
-  Scenario Outline: Fail to cancel a booking with invalid booking reference values
-    Given the booking reference provided is <id>
-    When a cancellation request is submitted
-    Then the system rejects the cancellation request
-    And the response indicates a validation error
+Scenario Outline: Fail to cancel a booking when the booking reference is invalid
+  Given the booking reference provided is <bookingReference>
+  When a cancellation request is submitted
+  Then the system rejects the cancellation request
+  And the response indicates a validation error
 
-    Examples:
-      | id   |
-      | @#$% |
-      |      |
+  Examples:
+    | bookingReference |
+    | invalidFormat    |
+    | 999999999999999  |
+    | 0                |
+    | @#$%             |
+    |                  |
 
 
-  @delete @negative @security
+@delete @negative @security
   Scenario: Fail to cancel a booking when a malicious booking reference is submitted
     Given a malicious booking reference is provided
     When a cancellation request is submitted
@@ -112,3 +94,4 @@ Feature: Cancel booking
     When multiple cancellation requests are submitted for the same booking in a very short time
     Then the system rejects the excess cancellation requests
     And the response indicates that the request rate limit has been exceeded
+

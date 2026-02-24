@@ -1,28 +1,17 @@
 @booking @api @update
 Feature: Update an existing booking
 
-  Business Objective:
-  Customers should be able to modify their personal details or stay information
-  so that they can correct mistakes or adjust their travel plans without cancelling
-  an existing booking.
-
-  Business Rules:
-  - Only customer details and stay information are allowed to be updated.
-  - The booking reference and booking creation details cannot be changed.
-  - Updates are allowed only for active (confirmed) bookings.
-  - When stay dates are updated, room availability must be validated.
-  - When price is updated, the booking summary must reflect the revised amount.
-  - All successful updates must be recorded for audit and tracking purposes.
 
   Background:
     Given the booking service is available
+    And today is within the current month
     And a customer has the ability to request changes to an existing booking
 
 
-  @positive @regression
-  Scenario Outline: Update all booking details successfully
-    Given a confirmed booking already exists
-    When the customer requests to update the booking with the following details:
+  @positive @regression @put
+  Scenario Outline: Update all booking details successfully for an eligible booking
+    Given a confirmed eligible booking already exists
+    When the customer requests to fully update the booking with the following details:
       | firstname | lastname | totalprice | depositpaid | checkin    | checkout   |
       | <fname>   | <lname>  | <price>    | <deposit>   | <checkin>  | <checkout> |
     And the system validates the request and applies the approved changes to the existing booking
@@ -32,13 +21,13 @@ Feature: Update an existing booking
 
     Examples:
       | fname | lname | price | deposit | checkin    | checkout   |
-      | Alex  | Brown | 220   | true    | 2024-08-01 | 2024-08-05 |
+      | Alex  | Brown | 220   | true    | 2026-02-20 | 2026-02-23 |
 
 
-  @positive
-  Scenario Outline: Update only the customer's first name
-    Given a confirmed booking already exists
-    When the customer requests to update the first name to "<firstname>"
+  @positive @patch
+  Scenario Outline: Update only the customer's first name for an eligible booking
+    Given a confirmed eligible booking already exists
+    When the customer requests to partially update the first name to "<firstname>"
     And the system validates the request and applies the approved change to the existing booking
     And the system records the update activity for audit and tracking purposes
     Then the customer is able to view the updated first name "<firstname>" in the booking details
@@ -48,10 +37,10 @@ Feature: Update an existing booking
       | Michael   |
 
 
-  @positive
-  Scenario Outline: Update only the customer's last name
-    Given a confirmed booking already exists
-    When the customer requests to update the last name to "<lastname>"
+  @positive @patch
+  Scenario Outline: Update only the customer's last name for an eligible booking
+    Given a confirmed eligible booking already exists
+    When the customer requests to partially update the last name to "<lastname>"
     And the system validates the request and applies the approved change to the existing booking
     And the system records the update activity for audit and tracking purposes
     Then the customer is able to view the updated last name "<lastname>" in the booking details
@@ -61,9 +50,9 @@ Feature: Update an existing booking
       | Taylor   |
 
 
-  @positive
-  Scenario Outline: Update booking stay dates successfully
-    Given a confirmed booking already exists
+  @positive @put
+  Scenario Outline: Update booking stay dates successfully for an eligible booking
+    Given a confirmed eligible booking already exists
     And rooms are available for check-in "<checkin>" and check-out "<checkout>"
     When the customer requests to update the stay dates
     And the system validates the request, checks room availability and applies the approved changes to the existing booking
@@ -72,12 +61,12 @@ Feature: Update an existing booking
 
     Examples:
       | checkin    | checkout   |
-      | 2024-09-01 | 2024-09-06 |
+      | 2026-02-25 | 2026-02-27 |
 
 
-  @positive
-  Scenario Outline: Update the total booking price
-    Given a confirmed booking already exists
+  @positive @put
+  Scenario Outline: Update the total booking price for an eligible booking
+    Given a confirmed eligible booking already exists
     When the customer requests to update the total price to <totalprice>
     And the system validates the request and applies the approved change to the existing booking
     And the system recalculates the booking amount based on the updated price
@@ -101,7 +90,7 @@ Feature: Update an existing booking
       | 99999      |
 
 
-  @negative @security
+  @negative @security @put @patch
   Scenario Outline: Fail to update a booking when the customer is not authenticated
     Given a booking exists with reference <booking_id>
     When the customer attempts to update the booking using a "<token_type>" authentication token
@@ -115,9 +104,9 @@ Feature: Update an existing booking
       | 1          | empty      |
 
 
-  @negative @validation
-  Scenario Outline: Fail to update the booking when the first name is invalid
-    Given a confirmed booking already exists
+  @negative @validation @patch
+  Scenario Outline: Fail to update the first name when the value is invalid
+    Given a confirmed eligible booking already exists
     When the customer requests to update the first name to "<firstname>"
     And the system validates the request before applying the change
     Then the customer is informed about the validation issue "<expected_error>"
@@ -129,9 +118,9 @@ Feature: Update an existing booking
       | ThisIsAVeryLongFirstNameExceeding | size must be between 3 and 18 |
 
 
-  @negative @validation
-  Scenario Outline: Fail to update the booking when the last name is invalid
-    Given a confirmed booking already exists
+  @negative @validation @patch
+  Scenario Outline: Fail to update the last name when the value is invalid
+    Given a confirmed eligible booking already exists
     When the customer requests to update the last name to "<lastname>"
     And the system validates the request before applying the change
     Then the customer is informed about the validation issue "<expected_error>"
@@ -143,9 +132,9 @@ Feature: Update an existing booking
       | ThisIsAnExtremelyLongLastNameHere | size must be between 3 and 30 |
 
 
-  @negative @validation
-  Scenario Outline: Fail to update the booking when the stay dates are invalid
-    Given a confirmed booking already exists
+  @negative @validation @put
+  Scenario Outline: Fail to update the stay dates when the dates are invalid
+    Given a confirmed eligible booking already exists
     When the customer requests to update the stay dates to check-in "<checkin>" and check-out "<checkout>"
     And the system validates the date range before applying the change
     Then the customer is informed about the validation issue "<expected_error>"
@@ -153,12 +142,12 @@ Feature: Update an existing booking
 
     Examples:
       | checkin    | checkout   | expected_error                  |
-      | 2024-10-10 | 2024-10-01 | checkout must be after checkin |
+      | 2026-02-28 | 2026-02-26 | checkout must be after checkin |
 
 
-  @negative @business
+  @negative @business @put
   Scenario Outline: Fail to update stay dates when rooms are not available
-    Given a confirmed booking already exists
+    Given a confirmed eligible booking already exists
     And no rooms are available for check-in "<checkin>" and check-out "<checkout>"
     When the customer requests to update the stay dates
     And the system validates the request and checks room availability before applying the change
@@ -167,10 +156,10 @@ Feature: Update an existing booking
 
     Examples:
       | checkin    | checkout   |
-      | 2024-12-20 | 2024-12-25 |
+      | 2026-02-18 | 2026-02-20 |
 
 
-  @negative @business
+  @negative @business @put @patch
   Scenario Outline: Fail to update a booking that has already been cancelled
     Given a booking exists with reference <booking_id> and status "Cancelled"
     When the customer requests to update the booking details
@@ -181,3 +170,12 @@ Feature: Update an existing booking
     Examples:
       | booking_id |
       | 10         |
+
+
+  @negative @business
+  Scenario: Fail to update a booking that is not eligible for update
+    Given a confirmed booking exists with a check-in date outside the allowed update period
+    When the customer requests to update the booking details
+    Then the system rejects the request
+    And the customer is informed that the booking is not eligible for update
+    And the booking remains unchanged
