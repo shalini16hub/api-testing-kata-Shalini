@@ -8,7 +8,6 @@ Feature: Create booking
   Background:
     Given the reservation system is available
 
-
   @positive @validation
   Scenario: Successfully create a booking with valid guest and stay details
     Given a reservation is requested with the following confirmed guest and stay details:
