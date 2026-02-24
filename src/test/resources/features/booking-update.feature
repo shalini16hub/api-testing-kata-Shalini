@@ -1,30 +1,47 @@
 @booking @api @update
-Feature: Update booking via API
+Feature: Update an existing booking
+
+  Business Objective:
+  Customers should be able to modify their personal details or stay information
+  so that they can correct mistakes or adjust their travel plans without cancelling
+  an existing booking.
+
+  Business Rules:
+  - Only customer details and stay information are allowed to be updated.
+  - The booking reference and booking creation details cannot be changed.
+  - Updates are allowed only for active (confirmed) bookings.
+  - When stay dates are updated, room availability must be validated.
+  - When price is updated, the booking summary must reflect the revised amount.
+  - All successful updates must be recorded for audit and tracking purposes.
 
   Background:
-    Given the booking API is available
+    Given the booking service is available
+    And a customer has the ability to request changes to an existing booking
 
 
   @positive @regression
   Scenario Outline: Update all booking details successfully
-    And I have created a booking
-    When I update the created booking with the following details:
+    Given a confirmed booking already exists
+    When the customer requests to update the booking with the following details:
       | firstname | lastname | totalprice | depositpaid | checkin    | checkout   |
       | <fname>   | <lname>  | <price>    | <deposit>   | <checkin>  | <checkout> |
-    Then the response status code should be 200
-    And the response body should reflect the updated booking details
+    And the system validates the request and applies the approved changes to the existing booking
+    And the system recalculates the booking amount when required
+    And the system records the update activity for audit and tracking purposes
+    Then the customer is able to view the updated booking details in the booking summary
 
     Examples:
-      | fname  | lname | price | deposit | checkin    | checkout   |
-      | Alex   | Brown | 220   | true    | 2024-08-01 | 2024-08-05 |
+      | fname | lname | price | deposit | checkin    | checkout   |
+      | Alex  | Brown | 220   | true    | 2024-08-01 | 2024-08-05 |
 
 
   @positive
-  Scenario Outline: Update only firstname
-    And I have created a booking
-    When I update the created booking with firstname "<firstname>"
-    Then the response status code should be 200
-    And the response should contain updated firstname "<firstname>"
+  Scenario Outline: Update only the customer's first name
+    Given a confirmed booking already exists
+    When the customer requests to update the first name to "<firstname>"
+    And the system validates the request and applies the approved change to the existing booking
+    And the system records the update activity for audit and tracking purposes
+    Then the customer is able to view the updated first name "<firstname>" in the booking details
 
     Examples:
       | firstname |
@@ -32,11 +49,12 @@ Feature: Update booking via API
 
 
   @positive
-  Scenario Outline: Update only lastname
-    And I have created a booking
-    When I update the created booking with lastname "<lastname>"
-    Then the response status code should be 200
-    And the response should contain updated lastname "<lastname>"
+  Scenario Outline: Update only the customer's last name
+    Given a confirmed booking already exists
+    When the customer requests to update the last name to "<lastname>"
+    And the system validates the request and applies the approved change to the existing booking
+    And the system records the update activity for audit and tracking purposes
+    Then the customer is able to view the updated last name "<lastname>" in the booking details
 
     Examples:
       | lastname |
@@ -44,11 +62,13 @@ Feature: Update booking via API
 
 
   @positive
-  Scenario Outline: Update booking dates
-    And I have created a booking
-    When I update the created booking with checkin "<checkin>" and checkout "<checkout>"
-    Then the response status code should be 200
-    And the response should contain the updated booking dates
+  Scenario Outline: Update booking stay dates successfully
+    Given a confirmed booking already exists
+    And rooms are available for check-in "<checkin>" and check-out "<checkout>"
+    When the customer requests to update the stay dates
+    And the system validates the request, checks room availability and applies the approved changes to the existing booking
+    And the system records the update activity for audit and tracking purposes
+    Then the customer is able to view the updated stay dates in the booking summary
 
     Examples:
       | checkin    | checkout   |
@@ -56,21 +76,25 @@ Feature: Update booking via API
 
 
   @positive
-  Scenario Outline: Update total price
-    And I have created a booking
-    When I update the created booking with total price <totalprice>
-    Then the response status code should be 200
-    And the response should contain updated total price <totalprice>
+  Scenario Outline: Update the total booking price
+    Given a confirmed booking already exists
+    When the customer requests to update the total price to <totalprice>
+    And the system validates the request and applies the approved change to the existing booking
+    And the system recalculates the booking amount based on the updated price
+    And the system records the update activity for audit and tracking purposes
+    Then the customer is able to view the revised total price <totalprice> in the booking summary
 
     Examples:
       | totalprice |
       | 300        |
 
 
-  @negative @regression
-  Scenario Outline: Update non-existing booking
-    When I update booking ID <booking_id> with new booking details
-    Then the response status code should be 404
+  @negative @business
+  Scenario Outline: Fail to update a non-existing booking
+    When the customer attempts to update a booking with reference <booking_id>
+    And the system verifies the booking reference before applying any change
+    Then the customer is informed that the booking does not exist
+    And no booking information is modified
 
     Examples:
       | booking_id |
@@ -78,10 +102,12 @@ Feature: Update booking via API
 
 
   @negative @security
-  Scenario Outline: Update booking with invalid token
-    When I update booking ID <booking_id> with "<token_type>" token
-    Then the response status code should be 401
-    And the response should contain error message "Authentication required"
+  Scenario Outline: Fail to update a booking when the customer is not authenticated
+    Given a booking exists with reference <booking_id>
+    When the customer attempts to update the booking using a "<token_type>" authentication token
+    And the system validates the customer identity before applying any change
+    Then the customer is informed that authentication is required
+    And the booking remains unchanged
 
     Examples:
       | booking_id | token_type |
@@ -90,11 +116,12 @@ Feature: Update booking via API
 
 
   @negative @validation
-  Scenario Outline: Update booking with invalid firstname
-    And I have created a booking
-    When I update the created booking with firstname "<firstname>"
-    Then the response status code should be 400
-    And the response should contain validation error "<expected_error>"
+  Scenario Outline: Fail to update the booking when the first name is invalid
+    Given a confirmed booking already exists
+    When the customer requests to update the first name to "<firstname>"
+    And the system validates the request before applying the change
+    Then the customer is informed about the validation issue "<expected_error>"
+    And the booking remains unchanged
 
     Examples:
       | firstname                         | expected_error                |
@@ -103,11 +130,12 @@ Feature: Update booking via API
 
 
   @negative @validation
-  Scenario Outline: Update booking with invalid lastname
-    And I have created a booking
-    When I update the created booking with lastname "<lastname>"
-    Then the response status code should be 400
-    And the response should contain validation error "<expected_error>"
+  Scenario Outline: Fail to update the booking when the last name is invalid
+    Given a confirmed booking already exists
+    When the customer requests to update the last name to "<lastname>"
+    And the system validates the request before applying the change
+    Then the customer is informed about the validation issue "<expected_error>"
+    And the booking remains unchanged
 
     Examples:
       | lastname                          | expected_error                |
@@ -116,12 +144,40 @@ Feature: Update booking via API
 
 
   @negative @validation
-  Scenario Outline: Update booking with invalid date range
-    And I have created a booking
-    When I update the created booking with checkin "<checkin>" and checkout "<checkout>"
-    Then the response status code should be 400
-    And the response should contain validation error "<expected_error>"
+  Scenario Outline: Fail to update the booking when the stay dates are invalid
+    Given a confirmed booking already exists
+    When the customer requests to update the stay dates to check-in "<checkin>" and check-out "<checkout>"
+    And the system validates the date range before applying the change
+    Then the customer is informed about the validation issue "<expected_error>"
+    And the booking remains unchanged
 
     Examples:
-      | checkin    | checkout   | expected_error                 |
-      | 2024-10-10 | 2024-10-01 | checkout must be after checkin|
+      | checkin    | checkout   | expected_error                  |
+      | 2024-10-10 | 2024-10-01 | checkout must be after checkin |
+
+
+  @negative @business
+  Scenario Outline: Fail to update stay dates when rooms are not available
+    Given a confirmed booking already exists
+    And no rooms are available for check-in "<checkin>" and check-out "<checkout>"
+    When the customer requests to update the stay dates
+    And the system validates the request and checks room availability before applying the change
+    Then the customer is informed that the selected dates are not available
+    And the existing booking remains unchanged
+
+    Examples:
+      | checkin    | checkout   |
+      | 2024-12-20 | 2024-12-25 |
+
+
+  @negative @business
+  Scenario Outline: Fail to update a booking that has already been cancelled
+    Given a booking exists with reference <booking_id> and status "Cancelled"
+    When the customer requests to update the booking details
+    And the system validates the booking status before applying any change
+    Then the customer is informed that cancelled bookings cannot be modified
+    And the booking remains unchanged
+
+    Examples:
+      | booking_id |
+      | 10         |
