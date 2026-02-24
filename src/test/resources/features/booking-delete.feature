@@ -8,7 +8,6 @@ Feature: Cancel booking
   Background:
     Given a confirmed booking already exists in the reservation system
 
-
   @delete @positive
   Scenario: Successfully cancel an existing booking
     When a cancellation request is submitted for the existing booking
