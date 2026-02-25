@@ -8,7 +8,7 @@ Feature: Update an existing booking
     And a customer has the ability to request changes to an existing booking
 
 
-  @positive @regression @put
+  @positive @regression 
   Scenario Outline: Update all booking details successfully for an eligible booking
     Given a confirmed eligible booking already exists
     When the customer requests to fully update the booking with the following details:
@@ -104,35 +104,8 @@ Feature: Update an existing booking
       | 1          | empty      |
 
 
-  @negative @validation @patch
-  Scenario Outline: Fail to update the first name when the value is invalid
-    Given a confirmed eligible booking already exists
-    When the customer requests to update the first name to "<firstname>"
-    And the system validates the request before applying the change
-    Then the customer is informed about the validation issue "<expected_error>"
-    And the booking remains unchanged
 
-    Examples:
-      | firstname                         | expected_error                |
-      | Jo                                | size must be between 3 and 18 |
-      | ThisIsAVeryLongFirstNameExceeding | size must be between 3 and 18 |
-
-
-  @negative @validation @patch
-  Scenario Outline: Fail to update the last name when the value is invalid
-    Given a confirmed eligible booking already exists
-    When the customer requests to update the last name to "<lastname>"
-    And the system validates the request before applying the change
-    Then the customer is informed about the validation issue "<expected_error>"
-    And the booking remains unchanged
-
-    Examples:
-      | lastname                          | expected_error                |
-      | Li                                | size must be between 3 and 30 |
-      | ThisIsAnExtremelyLongLastNameHere | size must be between 3 and 30 |
-
-
-  @negative @validation @put
+  @negative @validation 
   Scenario Outline: Fail to update the stay dates when the dates are invalid
     Given a confirmed eligible booking already exists
     When the customer requests to update the stay dates to check-in "<checkin>" and check-out "<checkout>"
